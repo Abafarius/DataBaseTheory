@@ -16,7 +16,7 @@ CREATE TABLE Departments (
   	Id INT PRIMARY KEY IDENTITY NOT NULL,
   	Financing MONEY NULL DEFAULT 0,
   	Name NVARCHAR(100) UNIQUE NOT NULL,
-  	Check(Financing > 0)
+  	Check(Financing >= 0)
 )
   
 INSERT INTO Departments (Financing, Name)
