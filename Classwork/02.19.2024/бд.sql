@@ -57,6 +57,11 @@ FROM People
 WHERE email LIKE '%.COM%'
 
 
+--10
+SELECT MAX(age)
+from animal
+Where gender LIKE '%F%'
+
 SELECT * 
 FROM book
 
