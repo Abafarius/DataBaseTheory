@@ -62,6 +62,172 @@ SELECT MAX(age)
 from animal
 Where gender LIKE '%F%'
 
+--11
+SELECT CompanyName
+FROM Company
+WHERE DATEDIFF(YEAR, directorAe, GETDATE()) > 20
+AND DATEDIFF(YEAR, companyAge, GETDATE()) > 20
+ORDER BY CompanyName ASC;
+
+
+--12
+SELECT TOP 5 *
+FROM People
+ORDER BY birthDate DESC;
+
+--13
+SELECT COUNT(*)
+FROM Book
+WHERE authorName LIKE '%L%L%';
+
+--14
+SELECT *
+FROM Animal
+WHERE Age IN (10, 20, 30, 40, 50);
+
+--15
+SELECT COUNT(*) AS MaleCount
+FROM People
+WHERE Gender = 'Male' AND YEAR(BirthDate) = YEAR(GETDATE());
+
+--16
+SELECT bookName, bookAge
+FROM Book
+WHERE bookAge BETWEEN 10 AND 15
+ORDER BY bookAge;
+
+--17
+SELECT *
+FROM People
+WHERE Name LIKE 'S%' AND surname LIKE 'S%'
+ORDER BY City;
+
+
+--18
+SELECT COUNT(*)
+FROM Animal
+WHERE Age % 4 = 3;
+
+--19
+SELECT SUM(AuthorAge) AS TotalAge
+FROM Book
+WHERE bookRaiting = 10 AND bookName LIKE '%о%';
+
+--20
+SELECT COUNT(*) AS CompanyCount
+FROM Company
+WHERE workersCount > 100 AND DomainName LIKE '%[0-9]%';
+
+--variant 2
+--1
+SELECT CompanyName, DirectorName
+FROM Company
+WHERE DirectorName LIKE '%e' AND CompanyName LIKE 'd%';
+
+--2
+SELECT MAX(companyAge) AS MaxAge, MIN(companyAge) AS MinAge
+FROM Company
+WHERE DirectorName LIKE '%t%';
+
+--3
+SELECT *
+FROM Animal
+WHERE Age % 5 = 0;
+
+--4
+SELECT *
+FROM Company
+WHERE workersCount > directorAe * 80
+
+--5
+SELECT *
+FROM Animal
+WHERE Gender = 'Male' AND Age > 40;
+
+--6
+SELECT TOP 1 *
+FROM Animal
+WHERE Gender = 'Male' AND City LIKE '%е'
+ORDER BY Age DESC;
+
+--7
+SELECT *
+FROM Book
+WHERE bookAge > 18
+ORDER BY bookRaiting ASC;
+
+--8
+SELECT COUNT(*)
+FROM Animal
+WHERE Age > 45;
+
+--9
+SELECT AVG(Directorae) AS AverageDirectorAge
+FROM Company
+WHERE workersCount > 500;
+
+--10
+SELECT TOP 1 *
+FROM Company
+ORDER BY companyAge DESC;
+
+--11
+SELECT *
+FROM People
+WHERE Email LIKE '%.com'
+ORDER BY Name ASC;
+
+--12
+SELECT *
+FROM Company
+WHERE domainName LIKE '%.edu'
+ORDER BY companyAge ASC;
+
+--13
+SELECT TOP 2 *
+FROM Animal
+ORDER BY Age DESC;
+
+--14
+SELECT *
+FROM People
+WHERE MONTH(Birthdate) IN (12, 1, 2) AND YEAR(Birthdate) IN (2021, 2022);
+
+--15
+SELECT *
+FROM Company
+WHERE workersCount IN (100, 200, 300, 400, 500);
+
+--16
+SELECT surname
+FROM People
+WHERE Gender = 'F' AND surname LIKE '%T%T%';
+
+--17
+SELECT City
+FROM animal
+WHERE City LIKE '%-%';
+
+SELECT City
+FROM people
+WHERE City LIKE '%-%';
+
+--18
+SELECT *
+FROM Company
+WHERE DirectorAe = ID;
+
+--19
+SELECT COUNT(*)
+FROM People
+WHERE Gender = 'Male' AND Email LIKE '%[0-9]%';
+
+--20
+SELECT COUNT(*)
+FROM Animal
+WHERE Name LIKE 'м%' OR City LIKE 'м%' OR Gender LIKE 'м%';
+
+
 SELECT * 
 FROM book
 
