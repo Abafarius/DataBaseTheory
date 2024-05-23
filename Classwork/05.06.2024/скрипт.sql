@@ -98,7 +98,8 @@ VALUES
 (9, 9),
 (10, 10);
 
-
+-------------------------------
+--задание1
 CREATE TRIGGER FORBIDDEN
 ON team
 INSTEAD OF INSERT 
@@ -120,17 +121,209 @@ SELECT 'wE CAnT LEARn'
 INSERT INTO team
 VALUES (4, 0)
 
+---------------------------
+--задание 2
 
+CREATE TRIGGER trg_RemoveSingerFromGroup
+ON singer
+AFTER UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
 
-CREATE TRIGGER UPLOADRATEGROUP
-ON GROUPTOTAL
-AFTER INSERT 
-AS 
-DECLARE @RATEGROUP INT  
+    DELETE FROM groupTotal
+    WHERE singerId IN (
+        SELECT id
+        FROM inserted
+        WHERE singerRaiting < 4
+    );
+END;
+------------------------------------------
+--задание 3
+CREATE TRIGGER trg_UpdateGroupRating
+ON groupTotal
+AFTER INSERT
+AS
+BEGIN
+    SET NOCOUNT ON;
 
+    DECLARE @groupId int;
 
+    -- Получаем идентификатор группы из вставленных данных
+    SELECT @groupId = groupId FROM inserted;
 
-CREATE VIEW GROUPSDESCRIPTION AS 
-SELECT GROUPS.gruopName PRODUCERS.PROCNAME
-FROM groups 
-JOIN GRUOP
+    -- Обновляем рейтинг группы
+    UPDATE groups
+    SET groupRaiting = (
+        SELECT SUM(s.singerRaiting) * 1.0 / COUNT(*)
+        FROM groupTotal gt
+        JOIN singer s ON gt.singerId = s.id
+        WHERE gt.groupId = @groupId
+    )
+    WHERE id = @groupId;
+END;
+-------------------------------------
+--задание4
+CREATE TRIGGER trg_PreventYoungProducers
+ON producers
+INSTEAD OF INSERT
+AS
+BEGIN
+    IF EXISTS (SELECT 1 FROM inserted WHERE procAge < 28)
+    BEGIN
+        RAISERROR ('Producers must be at least 28 years old.', 16, 1);
+    END
+    ELSE
+    BEGIN
+        INSERT INTO producers (procName, procAge, procRaiting)
+        SELECT procName, procAge, procRaiting
+        FROM inserted;
+    END
+END;
+
+CREATE TRIGGER trg_PreventOldSingers
+ON singer
+INSTEAD OF INSERT
+AS
+BEGIN
+    IF EXISTS (SELECT 1 FROM inserted WHERE singerAge > 30)
+    BEGIN
+        RAISERROR ('Singers must be 30 years old or younger.', 16, 1);
+    END
+    ELSE
+    BEGIN
+        INSERT INTO singer (singerName, singerAge, singerRaiting)
+        SELECT singerName, singerAge, singerRaiting
+        FROM inserted;
+    END
+END;
+
+-----------------------------------
+--view
+--task1
+CREATE VIEW GroupProducersCount AS
+SELECT
+    g.gruopName AS GroupName,
+    COUNT(t.id) AS ProducerCount
+FROM
+    groups g
+JOIN
+    groupTotal gt ON g.id = gt.groupId
+JOIN
+    team t ON gt.id = t.groupTotalId
+GROUP BY
+    g.gruopName;
+
+------------------------------------
+--task2
+CREATE VIEW GroupProducersDetails AS
+SELECT
+    g.gruopName AS GroupName,
+    p.procName AS ProducerName
+FROM
+    groups g
+JOIN
+    groupTotal gt ON g.id = gt.groupId
+JOIN
+    team t ON gt.id = t.groupTotalId
+JOIN
+    producers p ON t.producersId = p.id;
+----------------------------------------
+--task3
+CREATE VIEW HighRatedGroupTeams AS
+SELECT
+    t.id AS TeamID,
+    g.gruopName AS GroupName,
+    p.procName AS ProducerName,
+    g.groupRaiting AS GroupRating
+FROM
+    groups g
+JOIN
+    groupTotal gt ON g.id = gt.groupId
+JOIN
+    team t ON gt.id = t.groupTotalId
+JOIN
+    producers p ON t.producersId = p.id
+WHERE
+    g.groupRaiting > 9;
+-------------------------------------------
+--task4
+CREATE VIEW SingersAndProducersInLowRatedGroups AS
+SELECT
+    s.singerName AS SingerName,
+    p.procName AS ProducerName
+FROM
+    groups g
+JOIN
+    groupTotal gt ON g.id = gt.groupId
+JOIN
+    singer s ON gt.singerId = s.id
+JOIN
+    team t ON gt.id = t.groupTotalId
+JOIN
+    producers p ON t.producersId = p.id
+WHERE
+    g.groupRaiting < 7;
+------------------------------------------------------
+--task5
+CREATE VIEW GroupProducerAverageRating AS
+SELECT
+    g.gruopName AS GroupName,
+    AVG(p.procRaiting) AS AverageProducerRating
+FROM
+    groups g
+JOIN
+    groupTotal gt ON g.id = gt.groupId
+JOIN
+    team t ON gt.id = t.groupTotalId
+JOIN
+    producers p ON t.producersId = p.id
+GROUP BY
+    g.gruopName;
+-----------------------------------------------------------
+--Procedures
+--task1
+CREATE PROCEDURE AddProducer
+    @procName nvarchar(100),
+    @procAge date,
+    @procRaiting int
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    INSERT INTO producers (procName, procAge, procRaiting)
+    VALUES (@procName, @procAge, @procRaiting);
+END;
+-----------------------------------------------------------
+--task2
+CREATE PROCEDURE FindTopRatedProducer
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT TOP 1 *
+    FROM producers
+    ORDER BY procRaiting DESC;
+END;
+
+---------------------------------------------------------------
+--task3
+CREATE PROCEDURE AddGroup
+    @groupName nvarchar(100),
+    @groupRating int
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM groups WHERE gruopName = @groupName)
+    BEGIN
+        INSERT INTO groups (gruopName, groupRaiting)
+        VALUES (@groupName, @groupRating);
+        PRINT 'Group added successfully.';
+    END
+    ELSE
+    BEGIN
+        PRINT 'Group name already exists. Please choose a different name.';
+    END
+END;
+
