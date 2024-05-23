@@ -224,3 +224,120 @@ BEGIN CATCH
     RAISERROR (@ErrorMessage, @ErrorSeverity, @ErrorState);
 END CATCH;
 ----------------------------------------------------------------------------------------
+--task2
+BEGIN TRANSACTION;
+
+BEGIN TRY
+    -- Задать минимальное допустимое значение пожертвований от спонсора
+    DECLARE @MinDonationAmount INT = 50000;
+
+    -- Создать временную таблицу для хранения идентификаторов спонсоров с недостаточной суммой пожертвований
+    CREATE TABLE #LowDonationSponsors (SponsorId INT);
+
+    -- Заполнить временную таблицу идентификаторами спонсоров с недостаточной суммой пожертвований
+    INSERT INTO #LowDonationSponsors (SponsorId)
+    SELECT SponsorId
+    FROM Donations
+    GROUP BY SponsorId
+    HAVING SUM(Amount) < @MinDonationAmount;
+
+    -- Удалить записи о пожертвованиях от спонсоров с недостаточной суммой пожертвований
+    DELETE FROM Donations
+    WHERE SponsorId IN (SELECT SponsorId FROM #LowDonationSponsors);
+
+    -- Удалить временную таблицу
+    DROP TABLE #LowDonationSponsors;
+
+    COMMIT TRANSACTION;
+END TRY
+BEGIN CATCH
+    -- В случае ошибки откатить транзакцию
+    ROLLBACK TRANSACTION;
+
+    -- Показать сообщение об ошибке
+    DECLARE @ErrorMessage2 NVARCHAR(4000);
+    DECLARE @ErrorSeverity2 INT;
+    DECLARE @ErrorState2 INT;
+
+    SELECT 
+        @ErrorMessage2 = ERROR_MESSAGE(),
+        @ErrorSeverity2 = ERROR_SEVERITY(),
+        @ErrorState2 = ERROR_STATE();
+
+    RAISERROR (@ErrorMessage, @ErrorSeverity, @ErrorState);
+END CATCH;
+-----------------------------------------------------------------------------------------------------
+--task3
+BEGIN TRANSACTION;
+
+BEGIN TRY
+    -- Задать параметры для изменения зарплаты
+    DECLARE @BuildingNumber INT = 3;  -- Номер корпуса, для которого будет применяться изменение зарплат
+    DECLARE @DonationThreshold INT = 50000;  -- Порог суммы пожертвований
+    DECLARE @SalaryIncreasePercentage DECIMAL(5, 2) = 10.00;  -- Процент увеличения зарплаты
+    DECLARE @SalaryDecreasePercentage DECIMAL(5, 2) = 5.00;  -- Процент уменьшения зарплаты
+
+    -- Создать временную таблицу для хранения идентификаторов отделений, соответствующих условиям
+    CREATE TABLE #TargetDepartments (DepartmentId INT);
+
+    -- Заполнить временную таблицу идентификаторами отделений с достаточной суммой пожертвований
+    INSERT INTO #TargetDepartments (DepartmentId)
+    SELECT D.Id
+    FROM Departments D
+    INNER JOIN Donations DON ON D.Id = DON.DepartmentId
+    WHERE D.Building = @BuildingNumber
+    GROUP BY D.Id
+    HAVING SUM(DON.Amount) >= @DonationThreshold;
+
+    -- Увеличить зарплаты врачей в отделениях, где сумма пожертвований превышает порог
+    UPDATE Doctors
+    SET Salary = Salary + (Salary * @SalaryIncreasePercentage / 100)
+    WHERE Id IN (
+        SELECT Doc.Id
+        FROM Doctors Doc
+        INNER JOIN Departments Dep ON Doc.DepartmentId = Dep.Id
+        WHERE Dep.Id IN (SELECT DepartmentId FROM #TargetDepartments)
+    );
+
+    -- Заполнить временную таблицу идентификаторами отделений с недостаточной суммой пожертвований
+    DELETE FROM #TargetDepartments;
+
+    INSERT INTO #TargetDepartments (DepartmentId)
+    SELECT D.Id
+    FROM Departments D
+    INNER JOIN Donations DON ON D.Id = DON.DepartmentId
+    WHERE D.Building = @BuildingNumber
+    GROUP BY D.Id
+    HAVING SUM(DON.Amount) < @DonationThreshold;
+
+    -- Уменьшить зарплаты врачей в отделениях, где сумма пожертвований ниже порога
+    UPDATE Doctors
+    SET Salary = Salary - (Salary * @SalaryDecreasePercentage / 100)
+    WHERE Id IN (
+        SELECT Doc.Id
+        FROM Doctors Doc
+        INNER JOIN Departments Dep ON Doc.DepartmentId = Dep.Id
+        WHERE Dep.Id IN (SELECT DepartmentId FROM #TargetDepartments)
+    );
+
+    -- Удалить временную таблицу
+    DROP TABLE #TargetDepartments;
+
+    COMMIT TRANSACTION;
+END TRY
+BEGIN CATCH
+    -- В случае ошибки откатить транзакцию
+    ROLLBACK TRANSACTION;
+
+    -- Показать сообщение об ошибке
+    DECLARE @ErrorMessage NVARCHAR(4000);
+    DECLARE @ErrorSeverity INT;
+    DECLARE @ErrorState INT;
+
+    SELECT 
+        @ErrorMessage = ERROR_MESSAGE(),
+        @ErrorSeverity = ERROR_SEVERITY(),
+        @ErrorState = ERROR_STATE();
+
+    RAISERROR (@ErrorMessage, @ErrorSeverity, @ErrorState);
+END CATCH;
